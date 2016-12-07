@@ -54,4 +54,7 @@ include("NVRTC.jl")
 include("CUBLAS.jl")
 using .CUBLAS
 
+##### CUDNN #####
+include("cudnn/CUDNN.jl")
+
 end
