@@ -1,3 +1,5 @@
+export @nvrtc
+
 type CuFunction
     m::CuModule # avoid CuModule gc-ed
     ptr::Ptr{Void}
@@ -54,16 +56,3 @@ function (f::CuFunction)(dx::Int, dy::Int, dz::Int, args...;
     gz = ceil(dz / blocksize[3])
     cuLaunchKernel(f, gx, gy, gz, blocksize..., sharedmem, stream, argptrs, C_NULL)
 end
-
-#=
-function compile(path=joinpath(Pkg.dir("CUDA"),"kernels"))
-    for str in readdir(path)
-        filename = joinpath(path, str)
-        endswith(filename, ".cu") || continue
-        cmd = `nvcc -ptx $(filename) -odir $(path)`
-        println("Running...")
-        println(cmd)
-        run(cmd)
-    end
-end
-=#

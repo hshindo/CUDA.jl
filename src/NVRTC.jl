@@ -34,7 +34,7 @@ function compile(code::String; headers=(), include_names=())
     nvrtcCreateProgram(ref, code, C_NULL, length(headers), headers, include_names)
 
     prog = ref[1]
-    options = []
+    options = ["--gpu-architecture=compute_30"]
     nvrtcCompileProgram(prog, length(options), options)
     ptxsize = Csize_t[0]
     nvrtcGetPTXSize(prog, ptxsize)

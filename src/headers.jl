@@ -12,6 +12,9 @@ public:
         return n;
     }
     __device__ T& operator[](const int idx) { return data[idx]; }
+    __device__ T& operator()(int idx0, int idx1) {
+        return data[idx0*strides[0] + idx1*strides[1]];
+    }
     __device__ T& operator()(int *subs) {
         int idx = 0;
         for (int i = 0; i < N; i++) {

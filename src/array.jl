@@ -53,6 +53,8 @@ Base.similar(x::CuArray, dims::Int...) = similar(x, dims)
 
 Base.convert{T}(::Type{Ptr{T}}, x::CuArray) = Ptr{T}(x.ptr)
 Base.convert(::Type{CUdeviceptr}, x::CuArray) = CUdeviceptr(x.ptr)
+Base.convert{T,N}(::Type{CuArray{T,N}}, x::Array{T,N}) = CuArray(x)
+Base.convert{T,N}(::Type{Array{T,N}}, x::CuArray{T,N}) = Array(x)
 Base.unsafe_convert{T}(::Type{Ptr{T}}, x::CuArray) = Ptr{T}(x.ptr)
 Base.unsafe_convert(::Type{CUdeviceptr}, x::CuArray) = CUdeviceptr(x.ptr)
 

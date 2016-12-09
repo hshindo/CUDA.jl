@@ -44,6 +44,7 @@ include("pointer.jl")
 include("abstractarray.jl")
 include("array.jl")
 include("arraymath.jl")
+include("reducedim.jl")
 include("subarray.jl")
 include("Interop.jl")
 

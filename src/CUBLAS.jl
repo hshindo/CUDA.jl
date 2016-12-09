@@ -123,6 +123,7 @@ end
 function gemm{T}(tA::Char, tB::Char, A::CuVecOrMat{T}, B::CuVecOrMat{T})
     gemm(tA, tB, T(1), A, B)
 end
+gemm{T}(A::CuVecOrMat{T}, B::CuVecOrMat{T}; tA='N', tB='N') = gemm(tA, tB, A, B)
 
 # gemm_batched
 for (fname,elty) in [(:cublasDgemmBatched,:Float64), (:cublasSgemmBatched,:Float32)]
