@@ -23,6 +23,7 @@ end
 ##### Initialization #####
 const handles = Ptr{Void}[]
 handle(x::CuArray) = handles[device(x)+1]
+atexit(() -> foreach(cublasDestroy,handles))
 
 function init()
     empty!(handles)

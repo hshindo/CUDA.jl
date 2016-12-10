@@ -51,6 +51,8 @@ function sum{T,N}(x::CuArray{T,N}, dim::Int)
     dx = dim == 1 ? size(x,1) : size(x,2)
     dy = dim == 1 ? size(x,2) : size(x,1)
     f(dx, dy, 1, x, Cint(dim), y, sharedmem=sizeof(T)*32)
+    println(Array(x))
+    println(Array(y))
     y
 end
 
