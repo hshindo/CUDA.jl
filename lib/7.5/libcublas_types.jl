@@ -1,6 +1,6 @@
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
-using Compat
+#using Compat
 
 const cublasCreate = cublasCreate_v2
 const cublasDestroy = cublasDestroy_v2

@@ -3,7 +3,7 @@ module CUDNN
 using ..CUDA
 
 if is_windows()
-    const libcudnn = Libdl.find_library(["cudnn64_5"])
+    const libcudnn = Libdl.find_library(["cudnn64_5","cudnn64_4"])
 else
     const libcudnn = Libdl.find_library(["libcudnn"])
 end
@@ -28,7 +28,6 @@ datatype(::Type{Float64}) = CUDNN_DATA_DOUBLE
 datatype(::Type{Float16}) = CUDNN_DATA_HALF
 
 const handles = Ptr{Void}[]
-
 function handle(x::CuArray)
     dev = device(x) + 1
     while dev > length(handles)
@@ -42,13 +41,13 @@ atexit(() -> foreach(cudnnDestroy, handles))
 
 include("tensor.jl")
 include("activation.jl")
-##include("batchnorm.jl")
+#include("batchnorm.jl")
 #include("convolution.jl")
 #include("dropout.jl")
 #include("filter.jl")
 ##include("lrn.jl")
 #include("pooling.jl")
-##include("softmax.jl")
+include("softmax.jl")
 ##include("rnn.jl")
 
 end

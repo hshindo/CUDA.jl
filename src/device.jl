@@ -32,6 +32,7 @@ function attribute(attrib::Int, dev::Int)
 end
 
 function attributes(dev::Int)
+    Dict(
     "MAX_THREADS_PER_BLOCK" => attribute(1, dev),
     "MAX_BLOCK_DIM_X" => attribute(2, dev),
     "MAX_BLOCK_DIM_Y" => attribute(3, dev),
@@ -44,6 +45,7 @@ function attributes(dev::Int)
     "WARP_SIZE" => attribute(10, dev),
     "MAX_PITCH" => attribute(11, dev),
     "MAX_REGISTERS_PER_BLOCK" => attribute(12, dev)
+    )
 end
 
 function infodevices()

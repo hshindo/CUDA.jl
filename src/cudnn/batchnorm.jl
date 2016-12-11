@@ -1,4 +1,5 @@
-export CUDNN_BATCHNORM_PER_ACTIVATION, CUDNN_BATCHNORM_SPATIAL # mode
+export
+    CUDNN_BATCHNORM_PER_ACTIVATION, CUDNN_BATCHNORM_SPATIAL # mode
 
 function batchnorm_inference(mode, x, scale, bias, estimated_mean, estimated_var, epsilon::Float64)
     T = eltype(x)

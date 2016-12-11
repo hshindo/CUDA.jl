@@ -48,11 +48,11 @@ end
 box(x) = pointer_from_objref(x)
 
 function (f::CuFunction)(dx::Int, dy::Int, dz::Int, args...;
-    blocksize::NTuple{3,Int}=(128,1,1), sharedmem=4, stream=C_NULL)
+    bx=128, by=1, bz=1, sharedmem=0, stream=C_NULL)
 
     argptrs = Ptr{Void}[box(a) for a in args]
-    gx = ceil(dx / blocksize[1])
-    gy = ceil(dy / blocksize[2])
-    gz = ceil(dz / blocksize[3])
-    cuLaunchKernel(f, gx, gy, gz, blocksize..., sharedmem, stream, argptrs, C_NULL)
+    gx = ceil(dx / bx)
+    gy = ceil(dy / by)
+    gz = ceil(dz / bz)
+    cuLaunchKernel(f, gx, gy, gz, bx, by, bz, sharedmem, stream, argptrs, C_NULL)
 end

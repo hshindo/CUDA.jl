@@ -19,8 +19,8 @@ function activation(mode, x; relu_nanopt=CUDNN_NOT_PROPAGATE_NAN, relu_ceiling=1
     h = handle(x)
     y = similar(x)
     adesc = activation_desc(mode, relu_nanopt, relu_ceiling)
-    xdesc = tensor_desc(x)
-    ydesc = tensor_desc(y)
+    xdesc = tensor_desc(reshape4d(x))
+    ydesc = tensor_desc(reshape4d(y))
     cudnnActivationForward(h, adesc, T[alpha], xdesc, x, T[beta], ydesc, y)
 
     cudnnDestroyActivationDescriptor(adesc)
@@ -33,10 +33,10 @@ function ∇activation!(mode, y, dy, x, dx; relu_nanopt=CUDNN_NOT_PROPAGATE_NAN,
     T = eltype(y)
     h = handle(x)
     adesc = activation_desc(mode, relu_nanopt, relu_ceiling)
-    ydesc = tensor_desc(y)
-    dydesc = tensor_desc(y)
-    xdesc = tensor_desc(x)
-    dxdesc = tensor_desc(dx)
+    ydesc = tensor_desc(reshape4d(y))
+    dydesc = tensor_desc(reshape4d(y))
+    xdesc = tensor_desc(reshape4d(x))
+    dxdesc = tensor_desc(reshape4d(dx))
     cudnnActivationBackward(h, adesc, T[alpha], ydesc, y, dydesc, dy,
         xdesc, x, T[beta], dxdesc, dx)
 

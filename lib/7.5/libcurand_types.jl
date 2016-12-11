@@ -1,6 +1,6 @@
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
-using Compat
+#using Compat
 
 # begin enum curandStatus
 typealias curandStatus UInt32
