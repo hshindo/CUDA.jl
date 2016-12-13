@@ -31,7 +31,7 @@ function convolution(x, w, padding, stride; mode=CUDNN_CROSS_CORRELATION, alpha=
     worksize_p = Cint[0]
     cudnnGetConvolutionForwardWorkspaceSize(h, xdesc, wdesc, convdesc, ydesc, algo, worksize_p)
     worksize = worksize_p[1]
-    workspace = CuArray(Int8, Int(worksize))
+    workspace = CuArray{Int8}(Int(worksize))
 
     cudnnConvolutionForward(h, T[alpha], xdesc, x, wdesc, w, convdesc,
         algo, workspace, worksize, T[beta], ydesc, y)
@@ -55,12 +55,12 @@ function ∇convolution_bias!(dy, db; mode=CUDNN_CROSS_CORRELATION, alpha=1.0, b
     db
 end
 
-function ∇convolution_filter!(x, dy, convdesc, dw; mode=CUDNN_CROSS_CORRELATION, alpha=1.0, beta=0.0)
+function ∇convolution_filter!(x, padding, stride, dy, dw; mode=CUDNN_CROSS_CORRELATION, alpha=1.0, beta=0.0)
     T = eltype(dy)
     h = handle(dy)
     xdesc = tensor_desc(x)
     dydesc = tensor_desc(dy)
-    #convdesc = convolution_desc(T, padding, stride, mode)
+    convdesc = convolution_desc(T, padding, stride, mode)
     dwdesc = filter_desc(dw)
 
     algo_p = cudnnConvolutionBwdFilterAlgo_t[0]
@@ -71,24 +71,24 @@ function ∇convolution_filter!(x, dy, convdesc, dw; mode=CUDNN_CROSS_CORRELATIO
     worksize_p = Cint[0]
     cudnnGetConvolutionBackwardFilterWorkspaceSize(h, xdesc, dydesc, convdesc, dwdesc, algo, worksize_p)
     worksize = worksize_p[1]
-    workspace = CuArray(Int8, Int(worksize))
+    workspace = CuArray{Int8}(Int(worksize))
 
     cudnnConvolutionBackwardFilter(h, T[alpha], xdesc, x, dydesc, dy, convdesc,
         algo, workspace, worksize, T[beta], dwdesc, dw)
 
     cudnnDestroyTensorDescriptor(xdesc)
     cudnnDestroyTensorDescriptor(dydesc)
-    #cudnnDestroyConvolutionDescriptor(convdesc)
+    cudnnDestroyConvolutionDescriptor(convdesc)
     cudnnDestroyFilterDescriptor(dwdesc)
     dw
 end
 
-function ∇convolution_data!(w, dy, convdesc, dx; mode=CUDNN_CROSS_CORRELATION, alpha=1.0, beta=0.0)
+function ∇convolution_data!(w, padding, stride, dy, dx; mode=CUDNN_CROSS_CORRELATION, alpha=1.0, beta=0.0)
     T = eltype(dy)
     h = handle(dy)
     wdesc = filter_desc(w)
     dydesc = tensor_desc(dy)
-    #convdesc = convolution_desc(T, padding, stride, mode)
+    convdesc = convolution_desc(T, padding, stride, mode)
     dxdesc = tensor_desc(dx)
 
     algo_p = cudnnConvolutionBwdDataAlgo_t[0]
@@ -100,14 +100,14 @@ function ∇convolution_data!(w, dy, convdesc, dx; mode=CUDNN_CROSS_CORRELATION,
     cudnnGetConvolutionBackwardDataWorkspaceSize(h, wdesc, dydesc, convdesc,
         dxdesc, algo, worksize_p)
     worksize = worksize_p[1]
-    workspace = CuArray(Int8, Int(worksize))
+    workspace = CuArray{Int8}(Int(worksize))
 
     cudnnConvolutionBackwardData(h, T[alpha], wdesc, w, dydesc, dy, convdesc,
         algo, workspace, worksize, T[beta], dxdesc, dx)
 
     cudnnDestroyFilterDescriptor(wdesc)
     cudnnDestroyTensorDescriptor(dydesc)
-    #cudnnDestroyConvolutionDescriptor(convdesc)
+    cudnnDestroyConvolutionDescriptor(convdesc)
     cudnnDestroyTensorDescriptor(dxdesc)
     dx
 end
