@@ -1,6 +1,6 @@
 export
     device, setdevice,
-    sync
+    synchronize
 
 const contexts = Ptr{Void}[]
 
@@ -22,4 +22,4 @@ end
 
 setdevice(dev::Int) = cuCtxSetCurrent(contexts[dev+1])
 
-sync() = cuCtxSynchronize()
+synchronize() = cuCtxSynchronize()

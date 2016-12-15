@@ -13,6 +13,34 @@ end
 
 Base.unsafe_convert(::Type{Ptr{Void}}, f::CuFunction) = f.ptr
 
+export @nvrtc2
+const cufuns = Dict{String,CuFunction}()
+
+macro nvrtc2(src)
+    src.head == :string || throw("expr is not string")
+    dict = Dict()
+    syms = Any[string(gensym())]
+    for arg in src.args
+        typeof(arg) != Symbol && continue
+        haskey(dict, arg) && continue
+        dict[arg] = arg
+        push!(syms, "_", arg)
+    end
+    expr = Expr(:string, syms...)
+    quote
+        local key = $(esc(expr))
+        if haskey(cufuns, key)
+            cufuns[key]
+        else
+            local code = $(esc(src))
+            local ptx = NVRTC.compile(code)
+            f = load_ptx(ptx)
+            cufuns[key] = f
+            f
+        end
+    end
+end
+
 macro nvrtc(key, expr)
     dict = Dict{Any,CuFunction}()
     quote

@@ -5,16 +5,17 @@ function convolution_desc(T::Type, padding, stride, mode)
     p = Ptr{Void}[0]
     cudnnCreateConvolutionDescriptor(p)
     cpadding = Cint[padding[i] for i=N:-1:1]
-    cstride = Cint[stride[i] for i=N:-1:1]
+    cstrides = Cint[stride[i] for i=N:-1:1]
     cupscale = fill(Cint(1), N)
-    cudnnSetConvolutionNdDescriptor(p[1], N, cpadding, cstride, cupscale, mode, datatype(T))
+    cudnnSetConvolutionNdDescriptor(p[1], N, cpadding, cstrides, cupscale, mode, datatype(T))
     p[1]
 end
 
-function convolution(x, w, padding, stride; mode=CUDNN_CROSS_CORRELATION, alpha=1.0, beta=0.0)
-    T = eltype(x)
+function convolution{T}(x::CuArray{T}, w::CuArray{T}, padding, stride;
+    mode=CUDNN_CROSS_CORRELATION, alpha=1.0, beta=0.0)
+
     N = length(padding)
-    outdims = Int[(size(x,i)+2padding[i]-size(w,i)) ÷ stride[i] + 1 for i=1:N]
+    outdims = ntuple(i -> (size(x,i)+2padding[i]-size(w,i)) ÷ stride[i] + 1, N)
     y = similar(x, outdims..., size(w,N+2), size(x,N+2))
 
     h = handle(x)

@@ -83,17 +83,22 @@ function Base.copy!{T}(dest::CuArray{T}, src::CuArray{T}; stream=C_NULL)
 end
 Base.copy(x::CuArray) = copy!(similar(x),x)
 
-function Base.fill!{T}(x::CuArray{T}, value)
+@generated function Base.fill!{T,N}(x::CuArray{T,N}, value)
     t = ctype(T)
-    f = @nvrtc t """
-    __global__ void f($t *x, int length, $t value) {
+    code = """
+    $array_h
+    __global__ void f(Array<$t,$N> x, $t value) {
         int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        if (idx < length) {
+        if (idx < x.length()) {
             x[idx] = value;
         }
     } """
-    f(length(x), 1, 1, pointer(x), length(x), T(value))
-    x
+    ptx = NVRTC.compile(code)
+    f = load_ptx(ptx)
+    quote
+        $f(length(x), 1, 1, x, T(value))
+        x
+    end
 end
 Base.fill{T}(::Type{CuArray}, value::T, dims::NTuple) = fill!(CuArray{T}(dims), value)
 
