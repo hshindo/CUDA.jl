@@ -21,10 +21,8 @@ function compile(code::String)
         m = match(r".visible .entry (.+)\(", line) # find function name
         m == nothing && continue
         fname = Symbol(m[1])
-        f = CuFunction(mod, string(fname))
-        break
+        return CuFunction(mod, string(fname))
     end
-    f
 end
 
 box(x) = pointer_from_objref(x)
