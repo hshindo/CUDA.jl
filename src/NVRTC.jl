@@ -41,9 +41,8 @@ function compile(code::String; headers=(), include_names=())
     ptx = Array(UInt8, ptxsize[1])
     nvrtcGetPTX(prog, ptx)
     #log = getlog(prog)
-    #println(log)
+    #throw(log)
     nvrtcDestroyProgram(ref)
-
     String(ptx)
 end
 
