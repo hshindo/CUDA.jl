@@ -1,11 +1,10 @@
 import Base: sum, max
 export argmax
 
-function sum{T,N}(x::CuArray{T,N}, dim::Int)
-    @assert size(x,dim) < 128
+@generated function sum{T,N}(x::CuArray{T,N}, dim::Int)
     y = similar(x, ntuple(i -> i==dim ? 1 : size(x,i), N))
     t = ctype(T)
-    f = @nvrtc CuArray{T,N} """
+    f = compile("""
     $array_h
     $reducedim_h
     __global__ void f(Array<$t,3> x, Array<$t,$N> y) {
@@ -17,10 +16,12 @@ function sum{T,N}(x::CuArray{T,N}, dim::Int)
         $t val = x(idx_x, idx_y, idx_z);
         val = blockReduce<$t>(val);
         if (threadIdx.y == 0) y(blockIdx.x, 0, blockIdx.z) = val;
-    } """
-    x = reshape3d(x, dim)
-    f(size(x,1), size(x,2), size(x,3), x, reshape3d(y,dim), bx=1, by=128, sharedmem=sizeof(T)*32)
-    y
+    } """)
+    quote
+        x = reshape3d(x, dim)
+        $f(size(x,1), size(x,2), size(x,3), x, reshape3d(y,dim), bx=1, by=128, sharedmem=sizeof(T)*32)
+        y
+    end
 end
 
 function argmax{T,N}(x::CuArray{T,N}, dim::Int)
@@ -40,7 +41,7 @@ function reshape3d(x::CuArray, dim::Int)
 end
 
 function reducedim_kernel(op::String, v0::String)
-    f = @nvrtc CuArray{T,N} """
+    f = compile("""
     $array_h
 
     template<typename T>
@@ -77,8 +78,9 @@ function reducedim_kernel(op::String, v0::String)
         $t val = x(idx_x, idx_y, idx_z);
         val = blockReduce<$t>(val);
         if (threadIdx.y == 0) y(blockIdx.x, 0, blockIdx.z) = val;
-    } """
-
+    } """)
+    quote
+    end
 end
 
 const reducedim_h = """

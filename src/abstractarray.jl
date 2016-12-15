@@ -4,9 +4,9 @@ import Base.broadcast!
 abstract AbstractCuArray{T,N}
 export AbstractCuArray
 
-function Base.copy!{T,N}(y::AbstractCuArray{T,N}, x::AbstractCuArray{T,N})
+@generated function Base.copy!{T,N}(y::AbstractCuArray{T,N}, x::AbstractCuArray{T,N})
     t = ctype(T)
-    f = @nvrtc AbstractCuArray{T,N} """
+    f = compile("""
     $array_h
     __global__ void f(Array<$t,$N> y, Array<$t,$N> x) {
         int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -19,8 +19,9 @@ function Base.copy!{T,N}(y::AbstractCuArray{T,N}, x::AbstractCuArray{T,N})
                 y(subs) = x(subs);
             }
         }
-    }
-    """
-    f(length(y), 1, 1, y, x)
-    y
+    } """)
+    quote
+        $f(length(y), 1, 1, y, x)
+        y
+    end
 end
