@@ -46,7 +46,7 @@ include("convolution.jl")
 #include("dropout.jl")
 include("filter.jl")
 ##include("lrn.jl")
-#include("pooling.jl")
+include("pooling.jl")
 include("softmax.jl")
 ##include("rnn.jl")
 
