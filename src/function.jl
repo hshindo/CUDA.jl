@@ -1,3 +1,5 @@
+export @nvrtc
+
 type CuFunction
     m::CuModule # avoid CuModule gc-ed
     ptr::Ptr{Void}
@@ -11,8 +13,39 @@ end
 
 Base.unsafe_convert(::Type{Ptr{Void}}, f::CuFunction) = f.ptr
 
-function compile(code::String)
-    ptx = NVRTC.compile(code)
+box(x) = pointer_from_objref(x)
+
+macro nvrtc(expr)
+    expr.head == :string || throw("expr is not string")
+    idx = findfirst(expr.args) do a
+        typeof(a) <: String && match(r"__global__ void", a) != nothing
+    end
+    idx == 0 && throw("Cannot find \"__global__ void\".")
+    dict = Dict()
+    for i = idx+1:length(expr.args)
+        arg = expr.args[i]
+        typeof(arg) == Symbol && (dict[arg] = arg)
+        typeof(arg) == String && contains(arg, ")") && break
+    end
+    syms = Expr(:tuple, keys(dict)...)
+    dict = Dict()
+
+    quote
+        local dict = $dict
+        local key = $(esc(syms))
+        if haskey(dict, key)
+            dict[key]
+        else
+            local code = $(esc(expr))
+            local ptx = NVRTC.compile(code)
+            f = load_ptx(ptx)
+            dict[key] = f
+            f
+        end
+    end
+end
+
+function load_ptx(ptx::String)
     p = Ptr{Void}[0]
     cuModuleLoadData(p, pointer(ptx))
     mod = CuModule(p[1])
@@ -25,46 +58,8 @@ function compile(code::String)
     end
 end
 
-box(x) = pointer_from_objref(x)
-
-@generated function typesym{T}(::Type{T})
-    syms = (Symbol(T),)
-    :($syms[1])
-end
-@generated function typesym{T1,T2}(::Type{T1}, ::Type{T2})
-    syms = (Symbol(T1, "_", T2),)
-    :($syms[1])
-end
-
-macro compile(key, code)
-    
-
-    src.head == :string || throw("expr is not string")
-    dict = Dict()
-    syms = Any[string(gensym())]
-    for arg in src.args
-        typeof(arg) != Symbol && continue
-        haskey(dict, arg) && continue
-        dict[arg] = arg
-        push!(syms, "_", arg)
-    end
-    expr = Expr(:string, syms...)
-    quote
-        local key = $(esc(expr))
-        if haskey(cufuns, key)
-            cufuns[key]
-        else
-            local code = $(esc(src))
-            local ptx = NVRTC.compile(code)
-            f = load_ptx(ptx)
-            cufuns[key] = f
-            f
-        end
-    end
-end
-
-function (f::CuFunction)(dx::Int, dy::Int, dz::Int, args...;
-    bx=128, by=1, bz=1, sharedmem=0, stream=C_NULL)
+function (f::CuFunction)(args...;
+    dx=1, dy=1, dz=1, bx=128, by=1, bz=1, sharedmem=0, stream=C_NULL)
 
     argptrs = Ptr{Void}[box(a) for a in args]
     gx = ceil(dx / bx)

@@ -1,3 +1,10 @@
+immutable DropoutWork
+    states
+    statessize
+    reservespace
+    reservesize
+end
+
 function dropout(x, droprate)
     h = handle(x)
     y = similar(x)
@@ -8,14 +15,14 @@ function dropout(x, droprate)
     statessize_p = Cint[0]
     cudnnDropoutGetStatesSize(h, statessize_p)
     statessize = statessize_p[1]
-    states = CuArray(Int8, Int(statessize))
+    states = CuArray{Int8}(Int(statessize))
 
     xdesc = tensor_desc(x)
     ydesc = tensor_desc(y)
     reservesize_p = Cint[0]
     cudnnDropoutGetReserveSpaceSize(xdesc, reservesize_p)
     reservesize = reservesize_p[1]
-    reservespace = CuArray(Int8, Int(reservesize))
+    reservespace = CuArray{Int8}(Int(reservesize))
 
     states_p = Ptr{Void}[0]
     cudnnSetDropoutDescriptor(dropoutdesc, h, Cfloat(droprate), states, statessize, 0)
@@ -24,10 +31,10 @@ function dropout(x, droprate)
     cudnnDestroyDropoutDescriptor(dropoutdesc)
     cudnnDestroyTensorDescriptor(xdesc)
     cudnnDestroyTensorDescriptor(ydesc)
-    y, states, statessize, reservespace, reservesize
+    y, DropoutWork(states, statessize, reservespace, reservesize)
 end
 
-function ∇dropout!(dy, dx, droprate, states, statessize, reservespace, reservesize)
+function ∇dropout!(dy, dx, droprate, work::DropoutWork)
     h = handle(dy)
     p = Ptr{Void}[0]
     cudnnCreateDropoutDescriptor(p)
@@ -35,8 +42,8 @@ function ∇dropout!(dy, dx, droprate, states, statessize, reservespace, reserve
 
     dydesc = tensor_desc(dy)
     dxdesc = tensor_desc(dx)
-    cudnnSetDropoutDescriptor(dropoutdesc, h, Cfloat(droprate), states, statessize, 0)
-    cudnnDropoutBackward(h, dropoutdesc, dydesc, dy, dxdesc, dx, reservespace, reservesize)
+    cudnnSetDropoutDescriptor(dropoutdesc, h, Cfloat(droprate), work.states, work.statessize, 0)
+    cudnnDropoutBackward(h, dropoutdesc, dydesc, dy, dxdesc, dx, work.reservespace, work.reservesize)
 
     cudnnDestroyDropoutDescriptor(dropoutdesc)
     cudnnDestroyTensorDescriptor(dydesc)

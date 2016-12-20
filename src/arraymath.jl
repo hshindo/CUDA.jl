@@ -2,58 +2,87 @@ import Base: exp, log
 import Base: .+, +, .-, -, .*, *
 import Base: broadcast, broadcast!
 
+macro elemwise(op)
+    quote
+        op = $op
+        y = CuArray{T}(size(x))
+        t = ctype(T)
+        f = @nvrtc """
+        $array_h
+        __global__ void f(Array<$t,$N> x, Array<$t,$N> y) {
+            int idx = blockIdx.x * blockDim.x + threadIdx.x;
+            if (idx < y.length()) {
+                y(idx) = $op(x(idx));
+            }
+        } """
+        f(x, y, dx=length(y))
+        y
+    end
+end
+
+function exp{T,N}(x::CuArray{T,N})
+    f = @elemwise (x,y) """
+    y(idx) = exp(x(idx));
+    """
+    f(x)
+end
+
+function +{T,N}(x1::CuArray{T,N}, x2::CuArray{T,N})
+    y = similar(x1)
+    f = @elemwise (x1,x2,y) """
+    y(idx) = x1(idx) + x2(idx);
+    """
+    f(x)
+end
+
 for op in (:exp, :log)
     @eval begin
-        @generated function $op{T,N}(x::AbstractCuArray{T,N})
+        function $op{T,N}(x::AbstractCuArray{T,N})
             op = $op
             y = CuArray{T}(size(x))
             t = ctype(T)
-            f = compile("""
+            f = @nvrtc """
             $array_h
             __global__ void f(Array<$t,$N> x, Array<$t,$N> y) {
                 int idx = blockIdx.x * blockDim.x + threadIdx.x;
                 if (idx < y.length()) {
                     y(idx) = $op(x(idx));
                 }
-            } """)
-            quote
-                $f(length(y), 1, 1, x, y)
-                y
-            end
+            } """
+            f(x, y, dx=length(y))
+            y
         end
     end
 end
 
 for op in (:+, :-)
     @eval begin
-        @generated function $op{T,N}(x1::AbstractCuArray{T,N}, x2::AbstractCuArray{T,N})
+        function $op{T,N}(x1::AbstractCuArray{T,N}, x2::AbstractCuArray{T,N})
             size(x1) == size(x2) || throw(DimensionMismatch())
             op = $op
             y = CuArray{T}(size(x1))
             t = ctype(T)
-            f = compile("""
+            f = @nvrtc """
             $array_h
             __global__ void f(Array<$t,$N> x1, Array<$t,$N> x2, Array<$t,$N> y) {
                 int idx = blockIdx.x * blockDim.x + threadIdx.x;
                 if (idx < y.length()) {
                     y(idx) = x1(idx) $op x2(idx);
                 }
-            } """)
-            quote
-                $f(length(y), 1, 1, x1, x2, y)
-                y
-            end
+            } """
+            f(x1, x2, y, dx=length(y))
+            y
         end
     end
 end
 
 for op in (:+, :-, :*)
     @eval begin
-        @generated function broadcast!{T,N}(::typeof($op), y::AbstractCuArray{T,N},
+        function broadcast!{T,N}(::typeof($op), y::AbstractCuArray{T,N},
             x1::AbstractCuArray{T,N}, x2::AbstractCuArray{T,N})
             op = $op
             t = ctype(T)
-            f = compile("""
+            f = @nvrtc """
             $array_h
             __global__ void f(Array<$t,$N> y, Array<$t,$N> x1, Array<$t,$N> x2) {
                 int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -62,11 +91,9 @@ for op in (:+, :-, :*)
                     y.idx2sub(idx, subs);
                     y(subs) = x1(subs) $op x2(subs);
                 }
-            } """)
-            quote
-                $f(length(y), 1, 1, y, x1, x2)
-                y
-            end
+            } """
+            f(y, x1, x2, dx=length(y))
+            y
         end
     end
 end
